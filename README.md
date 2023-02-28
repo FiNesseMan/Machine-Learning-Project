@@ -9,7 +9,11 @@ In the applied industry context, the Preliminary Results would be a review of th
 The goal of this  is to review the preliminary machine learning models built using the data processing steps and features outlined in the Analytic Plan. Consequently, the Preliminary Results should provide at least the following:
 
 After performing the data processing steps and creating the features proposed in the Analytic Plan, train at least one dense neural network on the resulting feature set to predict the target.
+
 Specify the following aspects of the neural network(s) and discuss why/how they were chosen: number of layers, number of units for each layer, activation functions for each layer, loss function, and optimization algorithm.
+
 Evaluate the neural network(s) using learning curves on training and validation sets. Is the model(s) underfitting or overfitting? Based on this, what changes will be made to the architecture of the dense neural network(s).
+
 Based on the evaluation of the preliminary model(s), provide further data processing and feature engineering steps that will be implemented and investigated for the Final Report.
-As noted before, the instructor will use R for instructional purposes, but students are free to use Python for their project.
+
+
