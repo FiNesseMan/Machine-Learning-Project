@@ -1,0 +1,159 @@
+# Install everything:
+
+library(reticulate)
+library(keras)
+library(tensorflow)
+virtualenv_create("my_tf_workspace")
+use_virtualenv("my_tf_workspace", required = TRUE)
+install_tensorflow(method="virtualenv",
+                   envname="my_tf_workspace",
+                   pip_options = "--no-cache-dir",
+                   version = "cpu")
+install_keras(method="virtualenv",
+              envname="my_tf_workspace",
+              pip_options = "--no-cache-dir",
+              version = "cpu")
+
+
+# Prelimanary report start
+library(dplyr)
+library(caret)
+library(reticulate)
+library(tensorflow)
+library(keras)
+library(MESS)
+
+#Creating features
+data <- read.csv("project_data.csv")
+data$readmit_binary <- ifelse(data$readmitted == "yes",1,0)
+# Taking out not needed data
+data <- data[,-c(1,2)]
+
+
+training_ind <- createDataPartition(data$readmit_binary,
+                                    p = 0.75,
+                                    list = FALSE,
+                                    times = 1)
+training_set <- data[training_ind, ]
+test_set <- data[-training_ind, ]
+
+## Categorical Data:
+# CONVERT INTO FACTORS
+data$race <- factor(data$race)
+data$gender <- factor(data$gender)
+data$age <- factor(data$age)
+data$diag_1 <- factor(data$diag_1)
+data$diag_2 <- factor(data$diag_2)
+data$diag_3 <- factor(data$diag_3)
+data$max_glu_serum <- factor(data$max_glu_serum)
+data$A1Cresult <- factor(data$A1Cresult)
+data$insulin <- factor(data$insulin)
+data$change <- factor(data$change)
+data$diabetesMed <- factor(data$diabetesMed)
+data$readmitted <- factor(data$readmitted)
+data$admission_source <- factor(data$admission_source)
+data$admission_type <- factor(data$admission_type)
+data$discharge_disposition <- factor(data$discharge_disposition)
+
+#Set up onehot encoder
+# Using all categorical columns below
+#Confirming what columns are categorical:
+names(Filter(is.factor,data))
+
+# One hot coding the Training set
+onehot_encoder <- dummyVars(~ race + gender + age + diag_1 + diag_2 + diag_3 + max_glu_serum + A1Cresult + insulin + change + diabetesMed + readmitted + admission_source + admission_type + discharge_disposition,
+                            training_set[, c("race","gender","age","diag_1","diag_2","diag_3","max_glu_serum","A1Cresult","insulin","change","diabetesMed","readmitted","admission_source","admission_type","discharge_disposition")],
+                            levelsOnly = TRUE,
+                            fullRank = TRUE)
+onehot_enc_training <- predict(onehot_encoder,
+                               training_set[, c("race","gender","age","diag_1","diag_2","diag_3","max_glu_serum","A1Cresult","insulin","change","diabetesMed","readmitted","admission_source","admission_type","discharge_disposition")])
+training_set <- cbind(training_set, onehot_enc_training)
+
+# One hot coding the test set
+onehot_enc_test <- predict(onehot_encoder, test_set[, c("race","gender","age","diag_1","diag_2","diag_3","max_glu_serum","A1Cresult","insulin","change","diabetesMed","readmitted","admission_source","admission_type","discharge_disposition")])
+test_set <- cbind(test_set, onehot_enc_test)
+
+
+## Numerical Data
+names(Filter(is.numeric,data))
+
+# Here I used all of the numeric columns besides "readmit_binary. That was the binary column I created to be able to run tests
+#Standardize:
+test_set[, c("time_in_hospital","num_lab_procedures","num_procedures","num_medications","number_outpatient","number_emergency","num_medications_no","number_inpatient","number_diagnoses","num_medications_steady","num_medications_up","num_medications_down")] <- scale(test_set[, c("time_in_hospital","num_lab_procedures","num_procedures","num_medications","number_outpatient","number_emergency","num_medications_no","number_inpatient","number_diagnoses","num_medications_steady","num_medications_up","num_medications_down")],
+                                                                                                                                                                                                                                                                          center = apply(training_set[, c("time_in_hospital","num_lab_procedures","num_procedures","num_medications","number_outpatient","number_emergency","num_medications_no","number_inpatient","number_diagnoses","num_medications_steady","num_medications_up","num_medications_down")], 2, mean),
+                                                                                                                                                                                                                                                                          scale = apply(training_set[, c("time_in_hospital","num_lab_procedures","num_procedures","num_medications","number_outpatient","number_emergency","num_medications_no","number_inpatient","number_diagnoses","num_medications_steady","num_medications_up","num_medications_down")], 2, sd))
+training_set[, c("time_in_hospital","num_lab_procedures","num_procedures","num_medications","number_outpatient","number_emergency","num_medications_no","number_inpatient","number_diagnoses","num_medications_steady","num_medications_up","num_medications_down")] <- scale(training_set[, c("time_in_hospital","num_lab_procedures","num_procedures","num_medications","number_outpatient","number_emergency","num_medications_no","number_inpatient","number_diagnoses","num_medications_steady","num_medications_up","num_medications_down")])
+
+
+training_features <- array(data = unlist(training_set[, c("time_in_hospital","num_lab_procedures","num_procedures","num_medications","number_outpatient","number_emergency","num_medications_no","number_inpatient","number_diagnoses","num_medications_steady","num_medications_up","num_medications_down")]),
+                           dim = c(nrow(training_set), 33))# Not sure why I used 33 here, that was on the lab but it was not explained.
+training_labels <- array(data = unlist(training_set[, 28]),
+                         dim = c(nrow(training_set)))
+test_features <- array(data = unlist(test_set[, c("time_in_hospital","num_lab_procedures","num_procedures","num_medications","number_outpatient","number_emergency","num_medications_no","number_inpatient","number_diagnoses","num_medications_steady","num_medications_up","num_medications_down")]),
+                       dim = c(nrow(test_set), 33))
+test_labels <- array(data = unlist(test_set[, 28]),
+                     dim = c(nrow(test_set)))
+
+
+# Build the nural network:
+
+use_virtualenv("my_tf_workspace")
+
+model <- keras_model_sequential(list(
+  layer_dense(units = 420, activation = "relu"),
+  layer_dense(units = 150, activation = "relu"),
+  layer_dense(units = 16, activation = "relu"),
+  layer_dense(units = 1, activation = "sigmoid")
+))
+compile(model,
+        optimizer = "rmsprop",
+        loss = "binary_crossentropy",
+        metrics = "accuracy")
+history <- fit(model, training_features, training_labels,
+               epochs = 80, batch_size = 512, validation_split = 0.33)
+plot(history)
+
+
+# Build the ROC curve
+predictions <- predict(model, test_features)
+test_set$p_prob <- predictions[, 1]
+
+over_threshold <- test_set[test_set$p_prob >= 0.35, ]
+fpr <- sum(over_threshold$readmit_binary==0)/sum(test_set$readmit_binary==0)
+fpr
+
+tpr <- sum(over_threshold$readmit_binary==1)/sum(test_set$readmit_binary==1)
+tpr
+
+roc_data <- data.frame(threshold=seq(1,0,-0.01), fpr=0, tpr=0)
+for (i in roc_data$threshold) {
+  over_threshold <- test_set[test_set$p_prob >= i, ]
+  fpr <- sum(over_threshold$readmit_binary==0)/sum(test_set$readmit_binary==0)
+  roc_data[roc_data$threshold==i, "fpr"] <- fpr
+  tpr <- sum(over_threshold$readmit_binary==1)/sum(test_set$readmit_binary==1)
+  roc_data[roc_data$threshold==i, "tpr"] <- tpr
+}
+ggplot() +
+  geom_line(data = roc_data, aes(x = fpr, y = tpr, color = threshold), size = 2) +
+  scale_color_gradientn(colors = rainbow(3)) +
+  geom_abline(intercept = 0, slope = 1, lty = 2) +
+  geom_point(data = roc_data[seq(1, 101, 10), ], aes(x = fpr, y = tpr)) +
+  geom_text(data = roc_data[seq(1, 101, 10), ],
+            aes(x = fpr, y = tpr, label = threshold, hjust = 1.2, vjust = -0.2))
+
+# Build the AUC curve
+
+calibration_data <- data.frame(bin_midpoint=seq(0.05,0.95,0.1),
+                               observed_event_percentage=0)
+for (i in seq(0.05,0.95,0.1)) {
+  in_interval <- test_set[test_set$p_prob >= (i-0.05) & test_set$p_prob <= (i+0.05), ]
+  oep <- nrow(in_interval[in_interval$readmit_binary==1, ])/nrow(in_interval)
+  calibration_data[calibration_data$bin_midpoint==i, "observed_event_percentage"] <- oep
+}
+ggplot(data = calibration_data, aes(x = bin_midpoint, y = observed_event_percentage)) +
+  geom_line(size = 1) +
+  geom_abline(intercept = 0, slope = 1, lty = 2) +
+  geom_point(size = 2) +
+  geom_text(aes(label = bin_midpoint), hjust = 0.75, vjust = -0.5)
+
+
