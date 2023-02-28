@@ -1,10 +1,9 @@
 # Preliminary Results
-Testing Neural Networks
-Overview
+
+Overview:
 The main purpose of the  project is to work through the full lifecycle of a relatively simple, yet very realistic, applied machine learning project. With this in mind, the project is divided into three general components: 1) Analytic Plan, 2) Preliminary Results, and 3) Final Report.
 
-In the applied industry context, the Preliminary Results would be a review of the preliminary (i.e., initial or intermediate) machine learning models, the goal of which is to evaluate the models and determine possible areas for improvement. With this in mind, the assignment is focused primarily on hands-on analysis, which encompasses the data preparation steps and supervised learning tasks outlined in the Analytic Plan.
-
+In the applied industry context, the Preliminary Results would be a review of the preliminary (i.e., initial or intermediate) machine learning models, the goal of which is to evaluate the models and determine possible areas for improvement. With this in mind, the project is focused primarily on hands-on analysis, which encompasses the data preparation steps and supervised learning tasks outlined in the Analytic Plan.
 
 The goal of this  is to review the preliminary machine learning models built using the data processing steps and features outlined in the Analytic Plan. Consequently, the Preliminary Results should provide at least the following:
 
