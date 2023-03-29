@@ -1,4 +1,4 @@
-# Preliminary Results
+# Machine Learning Project
 
 Overview:
 The main purpose of the  project is to work through the full lifecycle of a relatively simple, yet very realistic, applied machine learning project. With this in mind, the project is divided into three general components: 1) Analytic Plan, 2) Preliminary Results, and 3) Final Report.
